@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="style.css"/>
+  </head>
+  <body>
+    <header id="titlebar">
+      <div id="drag-region">
+        <div id="window-title">
+          <span>Solari</span>
+        </div>
+        <div id="window-controls">
+          <div class="button" id="close-button">
+            <span>&#xE8BB;</span>
+          </div>
+        </div>
+      </div>
+    </header>
+    <div id="loading">
+      <span>
+        <a id="loading-ball-1">.</a>
+        <a id="loading-ball-2">.</a>
+        <a id="loading-ball-3">.</a>
+      </span>
+      Waiting for League Client
+    </div>
+
+    <script>
+      require('./renderer.js')
+    </script>
+  </body>
+</html>
