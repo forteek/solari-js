@@ -13,8 +13,6 @@ if (address) {
             }
         }
     }
-    console.log(addresses);
-    console.log(1);
 
     address.innerText = addresses[0];
 }
@@ -61,7 +59,7 @@ if (address) {
         if (closeButton) {
             closeButton.addEventListener("click", event => {
                 window = remote.getCurrentWindow();
-                window.close();
+                window.hide();
             });
         }
 

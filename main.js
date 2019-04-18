@@ -1,4 +1,4 @@
-const {app, BrowserWindow} = require('electron'),
+const {app, BrowserWindow, Tray, Menu} = require('electron'),
     http = require('http'),
     https = require('https'),
     { exec } = require('child_process');
@@ -6,7 +6,9 @@ const {app, BrowserWindow} = require('electron'),
 app.on('ready', createWindow);
 
 let mainWindow,
-    splashWindow;
+    splashWindow,
+    contextMenu,
+    appIcon;
 
 function createWindow () {
     splashWindow = new BrowserWindow({
@@ -14,8 +16,12 @@ function createWindow () {
         height: 200,
         fullscreenable: false,
         resizable: false,
-        frame: false
+        frame: false,
+        icon: 'solari.png',
+        title: 'Solari'
     });
+
+    let activeWindow = splashWindow;
 
     // felt kinda cute might delete later idk tho
     // mainWindow = new BrowserWindow({
@@ -37,20 +43,50 @@ function createWindow () {
         fullscreenable: false,
         resizable: false,
         frame: false,
-        show: false
+        show: false,
+        icon: 'solari.png',
+        title: 'Solari'
+    });
+
+    appIcon = new Tray('solari.png');
+
+    contextMenu = Menu.buildFromTemplate([
+        {
+            label: 'Show', click: () => {
+                activeWindow.show()
+            }
+        },
+        {
+            label: 'Quit', click: () => {
+                splashWindow = null;
+                mainWindow = null;
+                app.isQuiting = true;
+                app.quit()
+            }
+        }
+    ]);
+
+    appIcon.setContextMenu(contextMenu);
+    appIcon.on('double-click', () => {
+        activeWindow.show();
     });
 
     splashWindow.loadFile('loading.html');
-    splashWindow.on('closed', () => {
-        splashWindow = null;
-        if (!mainWindow.isVisible()) {
-            mainWindow.close();
-        }
+    splashWindow.on('close', () => {
+        event.preventDefault();
+        splashWindow.hide();
+    });
+    splashWindow.on('show', function () {
+        appIcon.setHighlightMode('always')
     });
 
     mainWindow.loadFile('main.html');
-    mainWindow.on('closed', () => {
-        mainWindow = null
+    mainWindow.on('close', () => {
+        event.preventDefault();
+        mainWindow.hide();
+    });
+    mainWindow.on('show', function () {
+        appIcon.setHighlightMode('always')
     });
 
     new Promise((resolve) => {
@@ -62,8 +98,10 @@ function createWindow () {
             });
         }, 1000)
     }).then(() => {
+        activeWindow = mainWindow;
         mainWindow.show();
-        splashWindow.close();
+        splashWindow.hide();
+        splashWindow = null;
         main();
     })
 }
