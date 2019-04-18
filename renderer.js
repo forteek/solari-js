@@ -1,4 +1,23 @@
-const remote = require('electron').remote;
+const remote = require('electron').remote,
+    os = require('os');
+
+let address = document.getElementById('address');
+if (address) {
+    let interfaces = os.networkInterfaces();
+    let addresses = [];
+    for (let k in interfaces) {
+        for (let k2 in interfaces[k]) {
+            let add = interfaces[k][k2];
+            if (add.family === 'IPv4' && !add.internal) {
+                addresses.push(add.address);
+            }
+        }
+    }
+    console.log(addresses);
+    console.log(1);
+
+    address.innerText = addresses[0];
+}
 
 (function handleWindowControls() {
     document.onreadystatechange = () => {

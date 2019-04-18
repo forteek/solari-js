@@ -1,7 +1,7 @@
 const {app, BrowserWindow} = require('electron'),
-    fs = require('fs'),
     http = require('http'),
-    https = require('https');
+    https = require('https'),
+    { exec } = require('child_process');
 
 app.on('ready', createWindow);
 
@@ -17,15 +17,25 @@ function createWindow () {
         frame: false
     });
 
+    // felt kinda cute might delete later idk tho
+    // mainWindow = new BrowserWindow({
+    //     width: 800,
+    //     height: 600,
+    //     minWidth: 800,
+    //     minHeight: 600,
+    //     webPreferences: {
+    //         nodeIntegration: true
+    //     },
+    //     fullscreenable: false,
+    //     frame: false,
+    //     show: false
+    // });
+
     mainWindow = new BrowserWindow({
-        width: 800,
-        height: 600,
-        minWidth: 800,
-        minHeight: 600,
-        webPreferences: {
-            nodeIntegration: true
-        },
+        width: 500,
+        height: 200,
         fullscreenable: false,
+        resizable: false,
         frame: false,
         show: false
     });
@@ -38,15 +48,15 @@ function createWindow () {
         }
     });
 
-    mainWindow.loadFile('index.html');
+    mainWindow.loadFile('main.html');
     mainWindow.on('closed', () => {
         mainWindow = null
     });
 
-    new Promise((resolve, reject) => {
+    new Promise((resolve) => {
         setInterval(function () {
-            fs.access('C:/Riot Games/League of Legends/lockfile', fs.constants.R_OK, function (err) {
-                if (!err) {
+            exec('wmic process where "name=\'LeagueClientUx.exe\'" get ProcessId', (err, stdout, stderr) => {
+                if (!stderr && !err) {
                     resolve();
                 }
             });
@@ -61,78 +71,65 @@ function createWindow () {
 function main () {
     let port,
         pass;
-    fs.readFile('C:/Riot Games/League of Legends/lockfile', 'utf-8', (err, data) => {
+    exec('wmic process where "name=\'LeagueClientUx.exe\'" get Commandline', (err, stdout, stderr) => {
         if (err) {
             throw err;
         }
-        data = data.split(":");
-
-        port = data[2];
-        pass = data[3];
+        if (stderr) {
+            throw stderr;
+        }
+        let parameters = stdout.split('" "--');
+        for (let i in parameters) {
+            let property = parameters[i].split('=');
+            if (property[0] === "app-port") {
+                port = property[1];
+            } else if (property[0] === 'remoting-auth-token') {
+                pass = property[1];
+            }
+        }
     });
 
-    http.createServer(function (req, res) {
-        new Promise((resolve) => {
-            let passedResponse = passRequest(req, res, port, pass);
-            setInterval(() => {
-                if (passedResponse) {
-                    console.log(3);
-                    resolve(passedResponse)
-                }
-            }, 200);
-        }).then((value) => {
-            console.log(4);
-            res.statusCode = value.statusCode;
-            res.write('super');
-            res.end();
-        });
+    http.createServer(async function (req, res) {
+        await passRequest(req, res, port, pass);
     }).listen(8069);
 }
 
 function passRequest (req, res, port, password) {
-    let { method, url } = req;
-    let body = '';
-    req.on('data', chunk => {
-        body += chunk.toString();
-    }).on('end', () => {
-        res.end();
-    });
+    return new Promise((resolve) => {
+        let { method, url } = req;
+        let body = '';
+        req.on('data', chunk => {
+            body += chunk.toString();
+        }).on('end', () => {
+            let options = {
+                host: '127.0.0.1',
+                port: port,
+                path: url,
+                method: method,
+                rejectUnauthorized: false,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Basic ' + Buffer.from('riot:' + password).toString('base64')
+                }
+            };
 
-    let options = {
-        host: '127.0.0.1',
-        port: port,
-        path: url,
-        mathod: method,
-        rejectUnauthorized: false,
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Basic ' + Buffer.from('riot:' + password).toString('base64')
-        }
-    };
+            let returnBuffer = '';
 
-    let returnBuffer,
-        returnDict = {};
-    new Promise((resolve) => {
-        let request = https.request(options, res => {
-            res.setEncoding('utf8');
-            res.on('data', chunk => {
-                returnBuffer += chunk.toString();
-            }).on('end', () => {
-                returnDict = {
-                    statusCode: res.statusCode,
-                    statusMessage: res.statusMessage,
-                    body: returnBuffer
-                };
-                console.log(1);
-                resolve();
+            let request = https.request(options, (response) => {
+                response.setEncoding('utf8');
+                response.on('data', chunk => {
+                    returnBuffer += chunk.toString();
+                }).on('end', () => {
+                    res.statusCode = response.statusCode;
+                    res.statusMessage = response.statusMessage;
+                    res.end(returnBuffer);
+                    resolve();
+                });
             });
+            request.write(body);
+            request.end();
         });
-        request.write(body);
-        request.end();
-    }).then(() => {
-        console.log(2);
-        return returnDict;
-    });
+    })
 }
 
 app.on('window-all-closed', () => {
