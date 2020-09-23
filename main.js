@@ -23,20 +23,6 @@ function createWindow () {
 
     let activeWindow = splashWindow;
 
-    // felt kinda cute might delete later idk tho
-    // mainWindow = new BrowserWindow({
-    //     width: 800,
-    //     height: 600,
-    //     minWidth: 800,
-    //     minHeight: 600,
-    //     webPreferences: {
-    //         nodeIntegration: true
-    //     },
-    //     fullscreenable: false,
-    //     frame: false,
-    //     show: false
-    // });
-
     mainWindow = new BrowserWindow({
         width: 500,
         height: 200,
